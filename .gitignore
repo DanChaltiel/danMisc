@@ -1,0 +1,8 @@
+packrat/lib*/
+.Rproj.user
+*.zip
+*.tar.gz
+.RData
+.Rhistory
+.Rprofile
+.rds
