@@ -39,7 +39,7 @@ NULL
 #' @description The inverse of \code{\%in\%}, oddly not native in R
 #' @export
 "%!in%" = function(x,y){
-  x %ni% y
+  !('%in%'(x,y))
 }
 
 
