@@ -7,7 +7,7 @@
 # TODO --------------------------------------------------------------------
 
  # --- Faire un roxygen combiné pour les fonctions de base
- # --- Réécrire l'opérateur + pour ne pas géner ggplot
+ # --- Réécrire l'opérateur + pour ne pas géner ggplot ?
  # --- Faire un purrr::nested_pmap -> plusieurs listes et pour chaque niveau un sapply = modify depth ?
  # --- nestedlist to dataframe
 
@@ -24,8 +24,7 @@
 ##'
 ##' @title Operators not indluded in R
 ##'
-##' @param x =X
-##' @param y =Y
+##' @param x, y vectors to be compared
 ##'
 ##' @return na-proof equality or difference
 NULL
@@ -43,7 +42,7 @@ NULL
 }
 
 
-#' Exactly equals
+#' Exactly equals (NA-proof)
 #' @rdname dan.operators
 #' @title egalite en comptant les NA. Ne peut pas retourner de NA
 #'
@@ -63,7 +62,7 @@ NULL
          a==b)
 }
 
-#' Exactly inequal
+#' Exactly inequal (NA-proof)
 #' @rdname dan.operators
 #' @title inegalite en comptant les NA. Ne peut pas retourner de NA
 #' @export
@@ -361,143 +360,6 @@ geom_point_and_error = function(type=c("sem", "ic")){
 }
 
 
-# Fonction les modeles de Cox ----------------------------------
-
-#' Amelioration of survminer::ggcoxfunctional
-#' added 2 lines to remove all non-numeric variables and avoid errors
-#'
-#' This won't work with \code{rcs}, but it's allright since it's meant to correct for linearity.
-#'
-#' To save the result : \code{
-#' p = arrangeGrob(grobs = ggcoxfunctional(fit=m1, data=data),
-#'                 left = textGrob("Martingale Residuals of Null Cox Model",gp=gp))
-#' ggsave(filepath, p)
-#' }
-#'
-#' @seealso \code{\link[survminer]{ggcoxfunctional}} for actual help.
-#' @export
-ggcoxfunctional_bak = function (formula, data = NULL, fit, iter = 0, f = 0.6, select = NULL, point.col = "red",
-                            point.size = 1, point.shape = 19, point.alpha = 1, xlim = NULL,
-                            ylim = NULL, ylab = "Martingale Residuals \nof Null Cox Model",
-                            title = NULL, caption = NULL, ggtheme = theme_survminer(),
-                            ...)
-{
-  if (!missing(formula)) {
-    if (inherits(formula, "coxph"))
-      fit <- formula
-    else {
-      warning("arguments formula is deprecated; ", "will be removed in the next version; ",
-              "please use fit instead.", call. = FALSE)
-      fit <- list(formula = formula, call = list(data = data))
-    }
-  }
-  formula <- fit$formula
-  data <- survminer:::.get_data(fit, data)
-  #DC: added these 2 lines to remove all non-numeric variables and avoid errors
-  # remov <- sapply(attr(stats::terms(formula), "term.labels"),
-  #                function(x){!is.numeric(data[[x]])})
-  # formula <- drop.terms(terms(formula), which(remov), keep.response=TRUE)
-  #___________________________________________
-  explanatory.variables.names <- attr(stats::terms(formula), "term.labels")
-  explanatory.variables.values <- stats::model.matrix(formula, data = data)
-
-  SurvFormula <- deparse(formula[[2]])
-  martingale_resid <- lowess_x <- lowess_y <- NULL
-  plots <- lapply(explanatory.variables.names, function(i) {
-    which_col <- which(colnames(explanatory.variables.values) ==
-                         i)
-    explanatory <- explanatory.variables.values[, which_col]
-    cox.model <- coxph(stats::as.formula(paste0(SurvFormula,
-                                                " ~ ", 1)), data = data)
-    data2viz <- data.frame(explanatory = explanatory, martingale_resid = resid(cox.model),
-                           lowess_x = lowess(explanatory, resid(cox.model),
-                                             iter = iter, f = f)$x, lowess_y = lowess(explanatory,
-                                                                                      resid(cox.model), iter = iter, f = f)$y)
-    if (is.null(xlim))
-      xlim <- c(min(data2viz$explanatory), max(data2viz$explanatory))
-    if (is.null(ylim))
-      ylim <- c(min(data2viz$lowess_y), max(data2viz$lowess_y))
-    gplot <- ggplot(data2viz, aes(x = explanatory, y = martingale_resid)) +
-      geom_point(col = point.col, shape = point.shape,
-                 size = point.size, alpha = point.alpha) + geom_line(aes(lowess_x,
-                                                                         lowess_y)) + ggtheme + xlab(i) + ylab(NULL) + ggplot2::coord_cartesian(xlim = xlim,
-                                                                                                                                                ylim = ylim)
-    gplot <- ggpubr::ggpar(gplot, ...)
-  })
-  names(plots) <- explanatory.variables.names
-  class(plots) <- c("ggcoxfunctional", "ggsurv", "list")
-  attr(plots, "y.text") <- ylab
-  attr(plots, "caption") <- caption
-  attr(plots, "title") <- title
-  plots
-}
-
-
-
-#' cox.plot.zph
-#' A wrapper around `survminer::ggcoxzph`
-#'
-#' @param cox.fit a `coxph` object
-#' @param zph.transform the `transform` parameter to pass to `survival::cox.zph`
-#' @param vars a character vector of model variables, either extact or not
-#' @param vars_pval a numeric value to draw only if zph test pvalue is under. Override `vars` if used.
-#' @param size the size of the beta's blue line.
-#'
-#' @return the ggplot
-#' @export
-#'
-#' @examples
-#' library(survival)
-#' library(survminer)
-#'
-#' fit <- coxph(Surv(time, event) ~ molecular_group + CCND1 +
-#'                                  CRIM1 + DEPDC1 + IRF4 + TP53 +
-#'                                  WHSC1, data=myeloma)
-#' cox.plot.zph(fit, "km")
-#' cox.plot.zph(fit, "km", vars="molecular_group")
-#' cox.plot.zph(fit, "km", vars=c("CCND1", "molecular_groupCyclin D-2",
-#'                                "molecular_groupHyperdiploid", "molecular_groupProliferation"))
-#' cox.plot.zph(fit, "km", vars_pval=0.2)
-#'
-#' ###To plot the result
-#' gp=gpar(fontsize=20,font=3)
-#' f = function(p) paste0("Global Schoenfeld Test p:", round(attr(p, "global_pval"),3))
-#' p1 = cox.plot.zph(fit, "km")
-#' p1 = arrangeGrob(grobs = p1,
-#'                  top = textGrob(f(p1),gp=gp))
-#' ggsave(filename, p1, scale = 3)
-#'
-#'
-cox.plot.zph = function (cox.fit, zph.transform, vars, vars_pval="all", size = 1.25) {
-  if(missing(zph.transform)) stop("zph.transform can be km, rank, or identity")
-  zph = cox.fit %>% cox.zph(transform = zph.transform)
-  if(is.numeric(vars_pval)){
-    vars = zph$table %>% as.data.frame %>% (tibble::rownames_to_column) %>%
-      filter(p<vars_pval) %>% pull(rowname)
-  }
-  if(missing(vars)||is.null(vars)||is.na(vars)){
-    betas = cox.fit$coefficients
-    plotlist = ggcoxzph(zph)
-  } else {
-    vars = vars %>%
-      sapply(function(x) if(x %in% names(cox.fit$coefficients)) x
-             else cox.fit$coefficients %>% names %>% grep(x, ., value=T)) %>%
-      unlist %>% as.character
-
-    betas = cox.fit$coefficients[vars]
-    plotlist = ggcoxzph(zph, var=vars)
-  }
-  if (length(betas) != length(plotlist))
-    stop("erreur de taille entre le zph (", length(plotlist),
-         ") et le vecteur des betas (", length(betas), ")")
-  for (i in 1:length(betas)) {
-    p = plotlist[[i]]
-    p = p + geom_hline(yintercept = betas[i], color = "steel blue",
-                       size = size)
-    plotlist[[i]] = p
-  }
-  return(plotlist)
-}
 
 # Equation de Schofield ---------------------------------------------------
 
