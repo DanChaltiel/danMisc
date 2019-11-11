@@ -3,13 +3,13 @@
 \name{+}
 \alias{+}
 \title{Addition2
-Reecriture de l'addition pour prendre en compte les characters}
+Reecriture de l'addition pour prendre en compte les characters (paste0)}
 \usage{
 "+"(x, y)
 }
 \description{
 Addition2
-Reecriture de l'addition pour prendre en compte les characters
+Reecriture de l'addition pour prendre en compte les characters (paste0)
 }
 \examples{
 "a"+"b"

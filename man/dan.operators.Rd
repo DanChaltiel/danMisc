@@ -11,9 +11,7 @@ a \%==\% b
 a \%!=\% b
 }
 \arguments{
-\item{x}{=X}
-
-\item{y}{=Y}
+\item{x, }{y vectors to be compared}
 }
 \value{
 na-proof equality or difference
@@ -21,9 +19,9 @@ na-proof equality or difference
 never NA
 }
 \description{
-Exactly equals
+Exactly equals (NA-proof)
 
-Exactly inequal
+Exactly inequal (NA-proof)
 }
 \examples{
 data.frame(a=c(NA,1,NA,1,1), b=c(NA,NA,1,1,2)) \%>\% mutate(

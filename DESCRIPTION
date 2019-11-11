@@ -4,8 +4,7 @@ Title: Quelques fonctions bien pratiques
 Version: 0.1.4
 Author: Dan Chaltiel
 Maintainer: Dan Chaltiel <dan.chaltiel@gmail.com>
-Description: Il n'y a pas grand chose à ajouter
-    Quelques fonctions sont pour les études de survie, le reste est très basique...
+Description: Quelques opérateurs et fonctions pratiques...
 License: WTFPL
 Encoding: UTF-8
 LazyData: true
